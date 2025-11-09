@@ -1,0 +1,74 @@
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+
+# BotFather-дан алған Token-ді осында қой
+TOKEN = "8274971798:AAGHGW1_IpRJSDRaPxueuAu33WIQVYsKApU"
+
+# Қол жетімді операцияларды көрсету үшін клавиатура
+keyboard = [['Қосу', 'Азайту'], ['Көбейту', 'Бөлу']]
+markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
+
+# Пайдаланушының деректерін сақтау үшін dictionary
+user_data = {}
+
+# /start командасы
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Сәлем, Мен калькулятор ботымын.\n"
+        "Қандай операция жасайсың?",
+        reply_markup=markup
+    )
+
+# Пайдаланушы операцияны таңдайды
+async def operation_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_data['operation'] = update.message.text
+    await update.message.reply_text("Бірінші санды енгіз:")
+
+# Пайдаланушы сандарды енгізеді
+async def numbers_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if 'num1' not in user_data:
+        try:
+            user_data['num1'] = float(text)
+            await update.message.reply_text("Екінші санды енгіз:")
+        except:
+            await update.message.reply_text("Санды дұрыс енгіз!")
+    else:
+        try:
+            num1 = user_data['num1']
+            num2 = float(text)
+            op = user_data['operation']
+
+            if op == 'Қосу':
+                result = num1 + num2
+            elif op == 'Азайту':
+                result = num1 - num2
+            elif op == 'Көбейту':
+                result = num1 * num2
+            elif op == 'Бөлу':
+                if num2 == 0:
+                    result = "Нөлге бөлу мүмкін емес!"
+                else:
+                    result = num1 / num2
+            else:
+                result = "Қате операция!"
+
+            await update.message.reply_text(f"Нәтиже: {result}")
+            user_data.clear()
+            await update.message.reply_text("Тағы операция жасағың келе ме?", reply_markup=markup)
+        except:
+            await update.message.reply_text("Санды дұрыс енгіз!")
+
+# Main функциясы
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.Regex('^(Қосу|Азайту|Көбейту|Бөлу)$'), operation_choice))
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), numbers_input))
+
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
+
